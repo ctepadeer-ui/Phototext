@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Фото-розмови</title>
+<style>
+:root{--bg:#edf1ee;--surface:#fff;--surface2:#e1e8e3;--ink:#131b17;--muted:#5a675f;--line:#d0d9d3;--accent:#0a7d5c;--on:#fff;--danger:#b3261e;--scrim:rgba(8,14,11,.5);--gap:12px}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1511;--surface:#161f1a;--surface2:#1e2924;--ink:#e7eee9;--muted:#9aa89f;--line:#273229;--accent:#35c48f;--on:#04130c;--danger:#ff8a80;--scrim:rgba(0,0,0,.62);color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;display:flex;flex-direction:column}
+button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+header{flex:none;display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
+h1{margin:0;font-size:18px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px}
+.note{margin:0 16px 8px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted);font-size:14px}
+
+/* Стіна: фото йдуть стовпчиками зліва направо, кожен стовпчик заповнюється зверху вниз, сторінка гортається вбік */
+.wall{flex:1;min-height:0;display:flex;flex-direction:column;flex-wrap:wrap;align-content:flex-start;gap:var(--gap);padding:4px 16px 16px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity}
+.tile{position:relative;flex:none;width:clamp(180px,26vw,300px);border:0;padding:0;border-radius:14px;overflow:hidden;background:var(--surface2);scroll-snap-align:start}
+.tile img{display:block;width:100%;height:100%;object-fit:cover}
+.tile .cap{position:absolute;left:0;right:0;bottom:0;padding:22px 10px 8px;text-align:left;font-size:13px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65));opacity:0;transition:opacity .15s}
+.tile:hover .cap,.tile:focus-visible .cap{opacity:1}
+@media (hover:none){.tile .cap{opacity:1}}
+.tile .cnt{position:absolute;top:8px;right:8px;min-width:24px;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:12px}
+
+.empty{margin:auto;max-width:420px;padding:28px 22px;border:1.5px dashed var(--line);border-radius:16px;text-align:center;color:var(--muted)}
+.empty h2{margin:0 0 8px;font-size:16px;color:var(--ink)}
+
+.fab{position:fixed;right:16px;bottom:16px;width:58px;height:58px;border:0;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);box-shadow:0 8px 20px rgba(0,0,0,.28);z-index:10}
+.fab svg,.ib svg{width:24px;height:24px}
+
+.btn{border:0;border-radius:999px;padding:9px 18px;font-weight:600;background:var(--accent);color:var(--on)}
+.btn.ghost{background:transparent;color:var(--muted)}
+.btn.big{width:100%;padding-block:13px}
+.btn:disabled{opacity:.45;cursor:default}
+
+.sheet{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;background:var(--scrim)}
+@media (min-width:700px){.sheet{align-items:center}.panel{border-radius:20px!important}}
+.panel{width:100%;max-width:520px;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:16px;background:var(--surface);border-radius:20px 20px 0 0}
+.ph{display:flex;align-items:center;justify-content:space-between}.ph h2{margin:0;font-size:16px}
+.drop{display:grid;place-items:center;min-height:120px;padding:0;overflow:hidden;border:1.5px dashed var(--line);border-radius:14px;background:var(--bg);color:var(--muted);font-weight:500}
+.drop img{display:block;width:100%;max-height:44vh;object-fit:cover}
+textarea{width:100%;resize:none;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);line-height:1.4}
+.err{margin:0;min-height:1.2em;font-size:13px;color:var(--danger)}
+
+/* Чат */
+.chat{position:fixed;inset:0;z-index:20;display:flex;background:var(--scrim);align-items:center;justify-content:center}
+.chatbox{width:100%;height:100%;max-width:980px;display:flex;flex-direction:column;background:var(--bg)}
+@media (min-width:800px){.chatbox{height:min(92vh,760px);flex-direction:row;border-radius:18px;overflow:hidden}.cphoto{flex:1.2;max-height:none!important}.cpane{flex:1}}
+.cphoto{flex:none;max-height:38vh;background:#000;display:flex;align-items:center;justify-content:center;position:relative}
+.cphoto img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.cphoto .x{position:absolute;top:8px;left:8px}
+.cpane{flex:1;min-height:0;display:flex;flex-direction:column;min-width:0}
+.ccap{margin:0;padding:12px 14px;font-weight:600;border-bottom:1px solid var(--line);background:var(--surface);overflow-wrap:anywhere;white-space:pre-wrap}
+.scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:14px}
+.hint{margin:0;text-align:center;color:var(--muted);font-size:14px}
+.msg{display:flex;flex-direction:column;gap:2px;max-width:84%}
+.msg.mine{align-self:flex-end;align-items:flex-end}.msg.theirs{align-self:flex-start}
+.nm{font-size:12px;padding-inline:6px}
+.bubble{padding:8px 12px;border-radius:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.mine .bubble{background:var(--accent);color:var(--on);border-bottom-right-radius:4px}
+.theirs .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.bubble p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.tm{align-self:flex-end;font-size:11px;opacity:.7}
+audio{width:min(240px,100%);height:38px}
+.composer{display:flex;align-items:flex-end;gap:8px;padding:10px;background:var(--surface);border-top:1px solid var(--line)}
+.composer textarea{flex:1;min-width:0;max-height:120px;border-radius:21px;padding:10px 14px}
+.ib{flex:none;width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--surface2);color:var(--ink)}
+.ib.send{background:var(--accent);color:var(--on)}.ib:disabled{opacity:.45;cursor:default}
+.ib.rec{background:var(--danger);color:#fff}
+.ib svg{width:20px;height:20px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:60;max-width:92vw;padding:10px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Фото-розмови</h1>
+  <span class="sub" id="me"></span>
+</header>
+<p id="note" class="note" hidden></p>
+
+<main id="wall" class="wall" aria-label="Стіна з фото"></main>
+<div id="empty" class="empty" hidden>
+  <h2>Ще немає фото</h2>
+  <p>Натисни плюс, вибери фото й напиши підпис. Під ним одразу з’явиться чат, де можна писати анонімно.</p>
+</div>
+
+<button id="fab" class="fab" type="button" aria-label="Додати фото">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<div id="sheet" class="sheet" hidden>
+  <form id="form" class="panel">
+    <div class="ph"><h2>Нове фото</h2><button type="button" id="closeSheet" class="btn ghost">Закрити</button></div>
+    <button type="button" id="pickBtn" class="drop"><span id="dropText">Вибрати фото</span><img id="preview" alt="" hidden></button>
+    <textarea id="cap" rows="2" maxlength="280" placeholder="Що на фото? З чого почати розмову?"></textarea>
+    <p id="sheetErr" class="err" role="alert"></p>
+    <button type="submit" id="publish" class="btn big" disabled>Опублікувати</button>
+  </form>
+  <input id="pick" type="file" accept="image/*" hidden>
+</div>
+
+<section id="chat" class="chat" hidden aria-label="Розмова">
+  <div class="chatbox">
+    <div class="cphoto">
+      <button id="back" type="button" class="ib x" aria-label="Закрити розмову"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <img id="cImg" alt="">
+    </div>
+    <div class="cpane">
+      <p id="cCap" class="ccap"></p>
+      <div id="scroll" class="scroll">
+        <p id="chatEmpty" class="hint">Тут ще тихо. Напиши першим або надішли голосове.</p>
+        <div id="msgs" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div class="composer">
+        <button id="audBtn" type="button" class="ib" aria-label="Надіслати голосове"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button>
+        <textarea id="msgIn" rows="1" maxlength="2000" placeholder="Повідомлення"></textarea>
+        <button id="sendBtn" type="button" class="ib send" aria-label="Надіслати" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+  </div>
+  <input id="audioIn" type="file" accept="audio/*" capture hidden>
+</section>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/*
+  НАЛАШТУВАННЯ (один раз):
+  1. supabase.com → New project.
+  2. Authentication → Sign In / Providers → увімкни "Allow anonymous sign-ins".
+  3. SQL Editor → встав і виконай:
+
+     create table posts (
+       id uuid primary key default gen_random_uuid(),
+       uid uuid not null default auth.uid(),
+       caption text, img text, w int, h int,
+       ts bigint not null
+     );
+     create table messages (
+       id uuid primary key default gen_random_uuid(),
+       post_id uuid not null references posts(id) on delete cascade,
+       uid uuid not null default auth.uid(),
+       text text, audio text,
+       ts bigint not null
+     );
+     alter table posts enable row level security;
+     alter table messages enable row level security;
+     create policy "read posts" on posts for select using (true);
+     create policy "add posts" on posts for insert to authenticated with check (uid = auth.uid());
+     create policy "delete own posts" on posts for delete to authenticated using (uid = auth.uid());
+     create policy "read msgs" on messages for select using (true);
+     create policy "add msgs" on messages for insert to authenticated with check (uid = auth.uid());
+     alter publication supabase_realtime add table posts, messages;
+
+  4. Project Settings → API → скопіюй Project URL і anon (publishable) key сюди.
+*/
+var SUPABASE_URL = "ВСТАВ_СЮДИ";
+var SUPABASE_KEY = "ВСТАВ_СЮДИ";
+
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var sb = null, uid = null, wallCh = null, chatCh = null, currentPost = null, pending = null, toastTimer = null;
+  var MAX_AUDIO = 150 * 1024, MAX_IMG = 190000;
+  var ADJ = ["Тихий","Сонний","Сміливий","Хитрий","Лагідний","Грізний","Кумедний","Мудрий","Бурий","Рудий","Ранковий","Нічний"];
+  var ANI = ["їжак","кіт","лис","ведмідь","бобер","шершень","яструб","борсук","журавель","вовк","заєць","сова"];
+
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function hash(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+  function alias(u) { var h = hash(u || "?"); return ADJ[h % ADJ.length] + " " + ANI[(h >> 5) % ANI.length]; }
+  function fmt(ts) {
+    if (!ts) return "";
+    var d = new Date(ts), t = d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+    return d.toDateString() === new Date().toDateString() ? t : d.toLocaleDateString("uk-UA", { day: "numeric", month: "short" }) + ", " + t;
+  }
+  function toast(m) { var t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 4200); }
+  function note(m) { var n = $("note"); if (!m) { n.hidden = true; return; } n.textContent = m; n.hidden = false; }
+  function errText(e) {
+    var c = e && (e.code || e.status);
+    if (c === "42501" || c === "PGRST301" || c === 401 || c === 403) return "Немає дозволу. Перевір політики в Supabase.";
+    if (c === 429) return "Забагато дій. Зачекай трохи.";
+    return "Не вийшло. Спробуй ще раз.";
+  }
+
+  /* ---------- стіна ---------- */
+  var tiles = new Map(), counts = {};
+  function tileHeight(p, w) {
+    var r = p.w && p.h ? p.h / p.w : 1;
+    r = Math.min(1.6, Math.max(0.6, r));
+    return Math.round(w * r);
+  }
+  function buildTile(id, p) {
+    var b = el("button", "tile");
+    b.type = "button";
+    b.dataset.id = id;
+    b.setAttribute("aria-label", "Відкрити розмову: " + (p.caption || "фото"));
+    var im = el("img"); im.src = p.img || ""; im.alt = p.caption || "Фото"; im.loading = "lazy";
+    b.append(im);
+    var cap = el("span", "cap", p.caption || ""); if (p.caption) b.append(cap);
+    b.style.setProperty("--r", String(Math.min(1.6, Math.max(0.6, (p.h || 1) / (p.w || 1)))));
+    b.addEventListener("click", function () { openChat(id, p); });
+    return b;
+  }
+  function sizeTiles() {
+    var wall = $("wall"), H = wall.clientHeight - 20;
+    var rows = H > 620 ? 3 : 2; /* скільки фото в стовпчику */
+    var gap = 12;
+    tiles.forEach(function (t) {
+      var r = parseFloat(t.style.getPropertyValue("--r")) || 1;
+      var w = t.getBoundingClientRect().width || 240;
+      var h = Math.round(w * r);
+      /* щоб стовпчик не перевищував висоту стіни */
+      var maxH = Math.floor((H - gap * (rows - 1)) / rows * 1.4);
+      t.style.height = Math.min(h, Math.max(140, maxH)) + "px";
+    });
+  }
+  function renderWall(snap) {
+    var wall = $("wall"), seen = new Set();
+    snap.docs.forEach(function (d, i) {
+      seen.add(d.id);
+      var t = tiles.get(d.id);
+      if (!t) { t = buildTile(d.id, d.data()); tiles.set(d.id, t); }
+      if (wall.children[i] !== t) wall.insertBefore(t, wall.children[i] || null);
+    });
+    tiles.forEach(function (t, id) { if (!seen.has(id)) { t.remove(); tiles.delete(id); } });
+    $("empty").hidden = snap.size > 0;
+    $("wall").hidden = snap.size === 0;
+    sizeTiles();
+  }
+  window.addEventListener("resize", sizeTiles);
+  /* колесо миші гортає стіну вбік */
+  $("wall").addEventListener("wheel", function (e) {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { this.scrollLeft += e.deltaY; e.preventDefault(); }
+  }, { passive: false });
+
+  /* ---------- чат ---------- */
+  var msgEls = new Map();
+  function openChat(id, p) {
+    currentPost = id;
+    $("chat").hidden = false;
+    $("cImg").src = p.img || "";
+    $("cCap").textContent = p.caption || "Без підпису";
+    $("cCap").style.display = "";
+    msgEls = new Map(); $("msgs").textContent = ""; $("chatEmpty").hidden = false;
+    if (chatCh) { sb.removeChannel(chatCh); chatCh = null; }
+    var first = true;
+    async function loadMsgs() {
+      var r = await sb.from("messages").select("*").eq("post_id", id).order("ts", { ascending: true }).limit(300);
+      if (r.error) { toast("Не вдалося завантажити розмову."); return; }
+      if (currentPost !== id) return;
+      renderMsgs(wrap(r.data), first); first = false;
+    }
+    loadMsgs();
+    chatCh = sb.channel("msgs-" + id + "-" + Date.now())
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, loadMsgs)
+      .subscribe();
+    // кнопка видалення для власного фото
+    var old = document.getElementById("delPost"); if (old) old.remove();
+    if (p.uid === uid) {
+      var del = el("button", "btn ghost", "Видалити фото"); del.id = "delPost"; del.type = "button";
+      var armed = false;
+      del.style.cssText = "align-self:flex-start;margin:4px 8px";
+      del.addEventListener("click", async function () {
+        if (!armed) { armed = true; del.textContent = "Точно видалити?"; setTimeout(function () { armed = false; del.textContent = "Видалити фото"; }, 4000); return; }
+        var r = await sb.from("posts").delete().eq("id", id);
+        if (r.error) toast(errText(r.error)); else { closeChat(); loadWall(); }
+      });
+      $("cCap").after(del);
+    }
+  }
+  function closeChat() {
+    if (chatCh) { sb.removeChannel(chatCh); chatCh = null; }
+    Array.prototype.forEach.call($("msgs").querySelectorAll("audio"), function (a) { a.pause(); });
+    $("chat").hidden = true; currentPost = null;
+  }
+  function buildMsg(id, m) {
+    var mine = m.uid === uid;
+    var row = el("div", "msg " + (mine ? "mine" : "theirs"));
+    if (!mine) { var n = el("span", "nm", alias(m.uid)); n.style.color = "hsl(" + (hash(m.uid || "") % 360) + ",45%,45%)"; row.append(n); }
+    var b = el("div", "bubble");
+    if (m.audio) { var a = document.createElement("audio"); a.controls = true; a.preload = "metadata"; a.src = m.audio; b.append(a); }
+    if (m.text) b.append(el("p", null, m.text));
+    b.append(el("time", "tm", fmt(m.ts)));
+    row.append(b);
+    return row;
+  }
+  function renderMsgs(snap, first) {
+    var list = $("msgs"), sc = $("scroll");
+    var near = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 140, seen = new Set();
+    snap.docs.forEach(function (d, i) {
+      seen.add(d.id);
+      var e = msgEls.get(d.id);
+      if (!e) { e = buildMsg(d.id, d.data()); msgEls.set(d.id, e); }
+      if (list.children[i] !== e) list.insertBefore(e, list.children[i] || null);
+    });
+    msgEls.forEach(function (e, id) { if (!seen.has(id)) { e.remove(); msgEls.delete(id); } });
+    $("chatEmpty").hidden = snap.size > 0;
+    if ((first && snap.size) || near) requestAnimationFrame(function () { sc.scrollTop = sc.scrollHeight; });
+  }
+  async function sendText() {
+    var inp = $("msgIn"), text = inp.value.trim(), pid = currentPost;
+    if (!text || !pid) return;
+    inp.value = ""; autosize(); updateSend();
+    var r = await sb.from("messages").insert({ post_id: pid, text: text.slice(0, 2000), ts: Date.now() });
+    if (r.error) { if (!inp.value) { inp.value = text; autosize(); updateSend(); } toast(errText(r.error)); }
+  }
+  function autosize() { var i = $("msgIn"); i.style.height = "auto"; i.style.height = Math.min(i.scrollHeight, 120) + "px"; }
+  function updateSend() { $("sendBtn").disabled = !$("msgIn").value.trim(); }
+
+  /* ---------- додати фото ---------- */
+  function loadImage(f) {
+    return new Promise(function (res, rej) {
+      var u = URL.createObjectURL(f), im = new Image();
+      im.onload = function () { URL.revokeObjectURL(u); res(im); };
+      im.onerror = function () { URL.revokeObjectURL(u); rej(); };
+      im.src = u;
+    });
+  }
+  async function compress(f) {
+    var im = await loadImage(f), w0 = im.naturalWidth, h0 = im.naturalHeight, sides = [1000, 840, 700, 560, 440];
+    for (var s = 0; s < sides.length; s++) {
+      var k = Math.min(1, sides[s] / Math.max(w0, h0)), w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+      var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      var ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h); ctx.drawImage(im, 0, 0, w, h);
+      var qs = [0.74, 0.62, 0.5];
+      for (var q = 0; q < qs.length; q++) { var d = cv.toDataURL("image/jpeg", qs[q]); if (d.length <= MAX_IMG) return { data: d, w: w, h: h }; }
+    }
+    throw new Error("big");
+  }
+  function closeSheet() {
+    $("sheet").hidden = true; pending = null;
+    $("preview").hidden = true; $("preview").removeAttribute("src"); $("dropText").hidden = false;
+    $("cap").value = ""; $("sheetErr").textContent = ""; $("publish").disabled = true;
+  }
+
+  function wire() {
+    $("fab").addEventListener("click", function () { if (sb) $("sheet").hidden = false; });
+    $("closeSheet").addEventListener("click", closeSheet);
+    $("sheet").addEventListener("click", function (e) { if (e.target === $("sheet")) closeSheet(); });
+    $("pickBtn").addEventListener("click", function () { $("pick").click(); });
+    $("pick").addEventListener("change", async function (e) {
+      var f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return;
+      $("sheetErr").textContent = ""; $("publish").disabled = true;
+      try {
+        pending = await compress(f);
+        $("preview").src = pending.data; $("preview").hidden = false; $("dropText").hidden = true; $("publish").disabled = false;
+      } catch (err) { pending = null; $("sheetErr").textContent = "Не вдалося прочитати це фото. Спробуй інше."; }
+    });
+    $("form").addEventListener("submit", async function (e) {
+      e.preventDefault(); if (!sb || !pending) return;
+      var btn = $("publish"); btn.disabled = true; btn.textContent = "Публікую…";
+      var r = await sb.from("posts").insert({ caption: $("cap").value.trim().slice(0, 280), img: pending.data, w: pending.w, h: pending.h, ts: Date.now() });
+      if (r.error) { $("sheetErr").textContent = errText(r.error); btn.disabled = !pending; }
+      else { closeSheet(); toast("Фото опубліковано"); loadWall(); }
+      btn.textContent = "Опублікувати";
+    });
+    $("back").addEventListener("click", closeChat);
+    $("sendBtn").addEventListener("click", sendText);
+    var inp = $("msgIn");
+    inp.addEventListener("input", function () { autosize(); updateSend(); });
+    inp.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer: fine)").matches) { e.preventDefault(); sendText(); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if (!$("sheet").hidden) closeSheet(); else if (!$("chat").hidden) closeChat();
+    });
+    $("audBtn").addEventListener("click", function () { $("audioIn").click(); });
+    $("audioIn").addEventListener("change", function (e) {
+      var f = e.target.files && e.target.files[0]; e.target.value = ""; var pid = currentPost;
+      if (!f || !pid) return;
+      if (!/^(audio|video)\//.test(f.type)) { toast("Це не схоже на аудіозапис."); return; }
+      if (f.size > MAX_AUDIO) { toast("Запис завеликий: до 150 КБ, це 10–20 секунд."); return; }
+      var fr = new FileReader();
+      fr.onload = async function () {
+        var r = await sb.from("messages").insert({ post_id: pid, audio: String(fr.result), ts: Date.now() });
+        if (r.error) toast(errText(r.error));
+      };
+      fr.readAsDataURL(f);
+    });
+  }
+
+  async function boot() {
+    wire();
+    if (!SUPABASE_URL || SUPABASE_URL.indexOf("ВСТАВ") === 0) {
+      $("fab").hidden = true; $("wall").hidden = true; $("empty").hidden = false;
+      note("Не вставлено URL і ключ Supabase. Дивись інструкцію в коментарі у файлі.");
+      return;
+    }
+    try {
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      var ses = await sb.auth.getSession();
+      if (!ses.data.session) {
+        var r = await sb.auth.signInAnonymously();
+        if (r.error) throw r.error;
+        uid = r.data.user.id;
+      } else uid = ses.data.session.user.id;
+    } catch (e) {
+      $("fab").hidden = true; $("wall").hidden = true; $("empty").hidden = false;
+      note("Не вдалося підключитися. Перевір URL, ключ і чи увімкнено анонімний вхід.");
+      return;
+    }
+    $("me").textContent = "Ти: " + alias(uid);
+    loadWall();
+    wallCh = sb.channel("wall").on("postgres_changes", { event: "*", schema: "public", table: "posts" }, loadWall).subscribe();
+  }
+  function wrap(rows) {
+    return { size: rows.length, docs: rows.map(function (r) { return { id: r.id, data: function () { return r; } }; }) };
+  }
+  async function loadWall() {
+    var r = await sb.from("posts").select("*").order("ts", { ascending: false }).limit(60);
+    if (r.error) { note("Не вдалося завантажити фото."); return; }
+    note(""); renderWall(wrap(r.data));
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
